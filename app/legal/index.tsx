@@ -35,6 +35,22 @@ export default function LegalScreen() {
             </View>
           ))}
         </View>
+        <Pressable
+          style={[styles.back, { marginTop: 24 }]}
+          onPress={() => router.push('/legal/terms')}
+          accessibilityLabel="利用規約を表示"
+          accessibilityRole="button"
+        >
+          <Text style={styles.backText}>利用規約を確認する &gt;</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.back, { marginTop: 8 }]}
+          onPress={() => router.push('/legal/privacy')}
+          accessibilityLabel="プライバシーポリシーを表示"
+          accessibilityRole="button"
+        >
+          <Text style={styles.backText}>プライバシーポリシーを確認する &gt;</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
