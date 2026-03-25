@@ -29,7 +29,15 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#FFE4B5",
+          "sounds": []
+        }
+      ]
     ]
   }
 }
