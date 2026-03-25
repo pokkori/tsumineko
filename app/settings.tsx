@@ -54,7 +54,7 @@ export default function SettingsScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>← 戻る</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>⚙ 設定</Text>
+        <Text style={styles.headerTitle}>設定</Text>
         <View style={{ width: 60 }} />
       </View>
 
@@ -178,9 +178,20 @@ export default function SettingsScreen() {
 
         {/* Info */}
         <View style={styles.separator} />
-        <Text style={styles.infoText}>利用規約</Text>
-        <Text style={styles.infoText}>プライバシーポリシー</Text>
-        <Text style={styles.infoText}>ライセンス</Text>
+        <TouchableOpacity
+          onPress={() => router.push("/legal")}
+          accessibilityRole="button"
+          accessibilityLabel="特定商取引法に基づく表記を見る"
+        >
+          <Text style={[styles.infoText, styles.infoLink]}>特定商取引法</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.push("/legal/privacy")}
+          accessibilityRole="button"
+          accessibilityLabel="プライバシーポリシーを見る"
+        >
+          <Text style={[styles.infoText, styles.infoLink]}>プライバシーポリシー</Text>
+        </TouchableOpacity>
         <Text style={styles.versionText}>バージョン 1.0.0</Text>
       </View>
     </SafeAreaView>
@@ -298,6 +309,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textLight,
     paddingVertical: 8,
+  },
+  infoLink: {
+    color: COLORS.secondary,
+    textDecorationLine: 'underline',
+    minHeight: 44,
+    paddingVertical: 12,
   },
   versionText: {
     fontSize: 12,
