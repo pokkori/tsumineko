@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,11 @@ import {
   Switch,
   Alert,
 } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import { useGameStore } from "../src/stores/gameStore";
 import { resetAllData } from "../src/utils/storage";
@@ -40,11 +45,24 @@ export default function SettingsScreen() {
     );
   };
 
+  const skinScale = useSharedValue(1);
+
   const cycleSkin = () => {
     const currentIndex = unlockedSkins.indexOf(settings.selectedSkinId);
     const nextIndex = (currentIndex + 1) % unlockedSkins.length;
     updateSettings({ selectedSkinId: unlockedSkins[nextIndex] });
+
+    // タップ時: scale 0.9 -> 1.05 -> 1.0
+    skinScale.value = withSpring(0.9, { damping: 8, stiffness: 400 }, () => {
+      skinScale.value = withSpring(1.05, { damping: 8, stiffness: 400 }, () => {
+        skinScale.value = withSpring(1.0, { damping: 8, stiffness: 300 });
+      });
+    });
   };
+
+  const skinAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: skinScale.value }],
+  }));
 
   const currentSkin = CAT_SKINS.find((s) => s.id === settings.selectedSkinId);
 
@@ -62,11 +80,17 @@ export default function SettingsScreen() {
         {/* Skin Selection */}
         <View style={styles.settingRow}>
           <Text style={styles.settingLabel}>使用スキン</Text>
-          <TouchableOpacity style={styles.skinSelector} onPress={cycleSkin}>
-            <View
+          <TouchableOpacity
+            style={styles.skinSelector}
+            onPress={cycleSkin}
+            accessibilityRole="button"
+            accessibilityLabel="スキンを変更する"
+          >
+            <Animated.View
               style={[
                 styles.skinCircle,
                 { backgroundColor: currentSkin?.bodyColor || "#FFF" },
+                skinAnimStyle,
               ]}
             />
             <Text style={styles.skinName}>{currentSkin?.name || "三毛猫"}</Text>

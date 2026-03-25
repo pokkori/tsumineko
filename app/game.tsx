@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,8 @@ import { updateStreak } from "../src/lib/streak";
 import { CatBody } from "../src/components/CatBody";
 import { ScoreDisplay } from "../src/components/ScoreDisplay";
 import { ComboPopup } from "../src/components/ComboPopup";
+import { ScorePopup } from "../src/components/ScorePopup";
+import { GameOverFlash } from "../src/components/GameOverFlash";
 import { CatPreview } from "../src/components/CatPreview";
 import { GuideArrow } from "../src/components/GuideArrow";
 import { Background } from "../src/components/Background";
@@ -35,14 +37,40 @@ export default function GameScreen() {
 
   const [paused, setPaused] = useState(false);
   const [started, setStarted] = useState(false);
+  const [gameOverFlash, setGameOverFlash] = useState(false);
+  const [scorePopups, setScorePopups] = useState<
+    { id: number; value: number; x: number; y: number }[]
+  >([]);
+  const prevScoreRef = useRef(0);
+  const popupIdRef = useRef(0);
+
+  const addScorePopup = useCallback((value: number, x: number, y: number) => {
+    const id = popupIdRef.current++;
+    setScorePopups((prev) => [...prev, { id, value, x, y }]);
+    setTimeout(() => {
+      setScorePopups((prev) => prev.filter((p) => p.id !== id));
+    }, 800);
+  }, []);
 
   useEffect(() => {
     startGame();
     setStarted(true);
   }, []);
 
+  // スコア増加時にポップアップ表示
+  useEffect(() => {
+    if (!gameState) return;
+    const diff = gameState.score - prevScoreRef.current;
+    if (diff > 0) {
+      addScorePopup(diff, 200, 160);
+    }
+    prevScoreRef.current = gameState.score;
+  }, [gameState?.score]);
+
   useEffect(() => {
     if (gameState?.phase === "gameover" && started) {
+      setGameOverFlash(true);
+      setTimeout(() => setGameOverFlash(false), 400);
       // Navigate to result
       const finalState = gameState;
       if (isDaily) {
@@ -134,6 +162,12 @@ export default function GameScreen() {
 
         {/* Combo Popup */}
         <ComboPopup combo={gameState.combo} />
+
+        {/* Score Popups */}
+        <ScorePopup items={scorePopups} />
+
+        {/* Game Over Flash */}
+        <GameOverFlash triggered={gameOverFlash} />
 
         {/* Collapsing overlay */}
         {gameState.phase === "collapsing" && (

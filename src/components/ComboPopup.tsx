@@ -1,5 +1,14 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Animated } from "react-native";
+import React, { useEffect } from "react";
+import { StyleSheet } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withSequence,
+  withTiming,
+  withDelay,
+  runOnJS,
+} from "react-native-reanimated";
 import { ScoreCalculator } from "../engine/ScoreCalculator";
 
 interface ComboPopupProps {
@@ -8,33 +17,56 @@ interface ComboPopupProps {
 
 const scorer = new ScoreCalculator();
 
+function getComboColor(combo: number): string {
+  if (combo >= 10) return "#E63946";
+  if (combo >= 5) return "#FFD93D";
+  return "#2DD4BF";
+}
+
 export const ComboPopup: React.FC<ComboPopupProps> = ({ combo }) => {
-  const [visible, setVisible] = useState(false);
-  const [text, setText] = useState("");
-  const [color, setColor] = useState("#FFFFFF");
-  const opacity = React.useRef(new Animated.Value(0)).current;
+  const scale = useSharedValue(0);
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(0);
 
   useEffect(() => {
     const comboText = scorer.getComboText(combo);
-    if (comboText) {
-      setText(comboText);
-      setColor(scorer.getComboColor(combo));
-      setVisible(true);
-      opacity.setValue(1);
+    if (!comboText) return;
 
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 1500,
-        useNativeDriver: true,
-      }).start(() => setVisible(false));
-    }
+    // リセット
+    scale.value = 0;
+    opacity.value = 1;
+    translateY.value = 0;
+
+    // 出現: scale 0 -> 1.3 -> 1.0 (spring)
+    scale.value = withSpring(1, { damping: 6, stiffness: 300 });
+
+    // 一定時間後に上昇フェードアウト
+    const HOLD_DURATION = 800;
+    opacity.value = withDelay(
+      HOLD_DURATION,
+      withTiming(0, { duration: 400 })
+    );
+    translateY.value = withDelay(
+      HOLD_DURATION,
+      withTiming(-40, { duration: 400 })
+    );
   }, [combo]);
 
-  if (!visible) return null;
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }, { translateY: translateY.value }],
+  }));
+
+  const comboText = scorer.getComboText(combo);
+  if (!comboText) return null;
 
   return (
-    <Animated.View style={[styles.container, { opacity }]}>
-      <Text style={[styles.text, { color }]}>{text}</Text>
+    <Animated.View style={[styles.container, animatedStyle]}>
+      <Animated.Text
+        style={[styles.text, { color: getComboColor(combo) }]}
+      >
+        {comboText}
+      </Animated.Text>
     </Animated.View>
   );
 };
@@ -49,7 +81,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   text: {
-    fontSize: 28,
+    fontSize: 36,
     fontWeight: "bold",
     textShadowColor: "rgba(0,0,0,0.8)",
     textShadowOffset: { width: 2, height: 2 },
