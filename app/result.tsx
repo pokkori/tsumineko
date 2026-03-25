@@ -67,7 +67,7 @@ export default function ResultScreen() {
 
         {isNewRecord && (
           <View style={styles.newRecordBanner}>
-            <Text style={styles.newRecordText}>🏆 NEW RECORD! 🏆</Text>
+            <Text style={styles.newRecordText}>NEW RECORD!</Text>
           </View>
         )}
 
@@ -96,21 +96,21 @@ export default function ResultScreen() {
           style={styles.retryButton}
           onPress={() => router.replace("/game")}
         >
-          <Text style={styles.buttonText}>🔄 もう一回</Text>
+          <Text style={styles.buttonText}>もう一回</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.shareButton}
           onPress={handleShare}
         >
-          <Text style={styles.buttonText}>📸 シェアする</Text>
+          <Text style={styles.buttonText}>シェアする</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.homeButton}
           onPress={() => router.replace("/")}
         >
-          <Text style={styles.homeButtonText}>🏠 タイトルに戻る</Text>
+          <Text style={styles.homeButtonText}>タイトルに戻る</Text>
         </TouchableOpacity>
       </Animated.View>
     </SafeAreaView>

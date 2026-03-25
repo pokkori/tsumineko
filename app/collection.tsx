@@ -28,7 +28,7 @@ export default function CollectionScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>← 戻る</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>📚 ネコ図鑑</Text>
+        <Text style={styles.headerTitle}>ネコ図鑑</Text>
         <View style={{ width: 60 }} />
       </View>
 
@@ -47,14 +47,12 @@ export default function CollectionScreen() {
                 key={shape.id}
                 style={[styles.card, !unlocked && styles.cardLocked]}
               >
-                <Text style={styles.cardEmoji}>
-                  {unlocked ? "🐱" : "❓"}
-                </Text>
+                <View style={[styles.cardIconCircle, { backgroundColor: unlocked ? '#FFD93D' : '#CCCCCC' }]} />
                 <Text style={styles.cardName}>
                   {unlocked ? shape.name : "???"}
                 </Text>
-                <Text style={styles.cardStatus}>
-                  {unlocked ? "✅" : "🔒"}
+                <Text style={[styles.cardStatus, { color: unlocked ? '#4CAF50' : '#999999' }]}>
+                  {unlocked ? "解放" : "未解放"}
                 </Text>
               </View>
             );
@@ -84,8 +82,8 @@ export default function CollectionScreen() {
                 <Text style={styles.cardName}>
                   {unlocked ? skin.name : "???"}
                 </Text>
-                <Text style={styles.cardStatus}>
-                  {unlocked ? "✅" : "🔒"}
+                <Text style={[styles.cardStatus, { color: unlocked ? '#4CAF50' : '#999999' }]}>
+                  {unlocked ? "解放" : "未解放"}
                 </Text>
               </View>
             );
@@ -108,7 +106,7 @@ export default function CollectionScreen() {
               style={[styles.achievementRow, !unlocked && styles.achievementLocked]}
             >
               <Text style={styles.achievementIcon}>
-                {hidden ? "❓" : achievement.icon}
+                {hidden ? "?" : achievement.icon}
               </Text>
               <View style={styles.achievementInfo}>
                 <Text style={styles.achievementName}>
@@ -118,8 +116,8 @@ export default function CollectionScreen() {
                   {hidden ? "隠し実績" : achievement.description}
                 </Text>
               </View>
-              <Text style={styles.achievementStatus}>
-                {unlocked ? "✅" : "🔒"}
+              <Text style={[styles.achievementStatus, { color: unlocked ? '#4CAF50' : '#999999' }]}>
+                {unlocked ? "解放" : "未解放"}
               </Text>
             </View>
           );
@@ -194,8 +192,10 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     backgroundColor: "#E0E0E0",
   },
-  cardEmoji: {
-    fontSize: 28,
+  cardIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     marginBottom: 4,
   },
   cardName: {

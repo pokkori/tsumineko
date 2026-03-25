@@ -57,8 +57,8 @@ export default function ShopScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>← 戻る</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>🛍 ショップ</Text>
-        <Text style={styles.coins}>🪙 {formatCoins(wallet.coins)}</Text>
+        <Text style={styles.headerTitle}>ショップ</Text>
+        <Text style={styles.coins}>{formatCoins(wallet.coins)} コイン</Text>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -89,7 +89,7 @@ export default function ShopScreen() {
                   style={styles.buyButton}
                   onPress={() => handleBuySkin(skin.id, price)}
                 >
-                  <Text style={styles.buyButtonText}>🪙 {price} で購入</Text>
+                  <Text style={styles.buyButtonText}>{price} コイン で購入</Text>
                 </TouchableOpacity>
               )}
             </View>

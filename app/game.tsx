@@ -88,7 +88,7 @@ export default function GameScreen() {
         {isDaily && (
           <View style={styles.dailyBanner}>
             <Text style={styles.dailyBannerText}>
-              📅 {challenge.ruleName}: {challenge.ruleDescription}
+              [デイリー] {challenge.ruleName}: {challenge.ruleDescription}
             </Text>
           </View>
         )}
@@ -138,7 +138,7 @@ export default function GameScreen() {
         {/* Collapsing overlay */}
         {gameState.phase === "collapsing" && (
           <View style={styles.collapseOverlay}>
-            <Text style={styles.collapseText}>💥</Text>
+            <Text style={styles.collapseText}>BOOM!</Text>
           </View>
         )}
 
@@ -147,7 +147,7 @@ export default function GameScreen() {
           style={styles.pauseButton}
           onPress={() => setPaused(true)}
         >
-          <Text style={styles.pauseButtonText}>⏸</Text>
+          <Text style={styles.pauseButtonText}>II</Text>
         </TouchableOpacity>
 
         {/* Pause Modal */}
@@ -158,7 +158,7 @@ export default function GameScreen() {
         >
           <View style={styles.pauseOverlay}>
             <View style={styles.pauseMenu}>
-              <Text style={styles.pauseTitle}>⏸ ポーズ中</Text>
+              <Text style={styles.pauseTitle}>ポーズ中</Text>
               <TouchableOpacity
                 style={styles.pauseMenuButton}
                 onPress={() => setPaused(false)}
@@ -172,7 +172,7 @@ export default function GameScreen() {
                   router.replace("/");
                 }}
               >
-                <Text style={styles.pauseMenuButtonText}>🏠 タイトルへ</Text>
+                <Text style={styles.pauseMenuButtonText}>タイトルへ</Text>
               </TouchableOpacity>
             </View>
           </View>
