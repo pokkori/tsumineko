@@ -2,7 +2,9 @@
  * ストリーク管理モジュール（全ゲーム共通）
  * - 7日連続プレイでボーナス / 1日スキップ可能なシールド機能
  * - D7リテンション +25%, D30 +18% (AppsFlyer 2024 実測値)
+ * - AsyncStorage 使用（React Native 対応）
  */
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface StreakData {
   count: number;
@@ -36,21 +38,21 @@ function getDayBefore(): string {
   return toDateString(new Date(Date.now() - 172800000));
 }
 
-export function loadStreak(key: string): StreakData {
-  if (typeof window === "undefined") return DEFAULT_STREAK;
+export async function loadStreak(key: string): Promise<StreakData> {
   try {
-    return JSON.parse(localStorage.getItem(`${key}_streak`) ?? "null") ?? { ...DEFAULT_STREAK };
+    const raw = await AsyncStorage.getItem(`${key}_streak`);
+    if (!raw) return { ...DEFAULT_STREAK };
+    return JSON.parse(raw) as StreakData;
   } catch {
     return { ...DEFAULT_STREAK };
   }
 }
 
-export function updateStreak(key: string): StreakData {
-  if (typeof window === "undefined") return DEFAULT_STREAK;
+export async function updateStreak(key: string): Promise<StreakData> {
   const today = getToday();
   const yesterday = getYesterday();
   const dayBefore = getDayBefore();
-  const data = loadStreak(key);
+  const data = await loadStreak(key);
 
   if (data.lastPlayDate === today) return data; // 今日すでに更新済み
 
@@ -84,7 +86,7 @@ export function updateStreak(key: string): StreakData {
   };
 
   try {
-    localStorage.setItem(`${key}_streak`, JSON.stringify(updated));
+    await AsyncStorage.setItem(`${key}_streak`, JSON.stringify(updated));
   } catch { /* noop */ }
 
   return updated;

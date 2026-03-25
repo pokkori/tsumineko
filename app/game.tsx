@@ -13,6 +13,7 @@ import { useGameState } from "../src/hooks/useGameState";
 import { useGameStore } from "../src/stores/gameStore";
 import { useDailyChallenge } from "../src/hooks/useDailyChallenge";
 import { updateStreak } from "../src/lib/streak";
+import { initAudioAsync, playBGM, stopBGM, playSE } from "../src/utils/audio";
 import { CatBody } from "../src/components/CatBody";
 import { ScoreDisplay } from "../src/components/ScoreDisplay";
 import { ComboPopup } from "../src/components/ComboPopup";
@@ -52,25 +53,45 @@ export default function GameScreen() {
     }, 800);
   }, []);
 
+  // オーディオ初期化 + BGM 再生
+  useEffect(() => {
+    initAudioAsync().then(() => playBGM()).catch(() => undefined);
+    return () => {
+      stopBGM().catch(() => undefined);
+    };
+  }, []);
+
   useEffect(() => {
     startGame();
     setStarted(true);
   }, []);
 
-  // スコア増加時にポップアップ表示
+  // スコア増加時にポップアップ表示 + SE
   useEffect(() => {
     if (!gameState) return;
     const diff = gameState.score - prevScoreRef.current;
     if (diff > 0) {
       addScorePopup(diff, 200, 160);
+      playSE('place').catch(() => undefined);
     }
     prevScoreRef.current = gameState.score;
   }, [gameState?.score]);
+
+  // コンボ発生時に SE
+  const prevComboRef = useRef(0);
+  useEffect(() => {
+    if (!gameState) return;
+    if (gameState.combo > 1 && gameState.combo > prevComboRef.current) {
+      playSE('combo').catch(() => undefined);
+    }
+    prevComboRef.current = gameState.combo;
+  }, [gameState?.combo]);
 
   useEffect(() => {
     if (gameState?.phase === "gameover" && started) {
       setGameOverFlash(true);
       setTimeout(() => setGameOverFlash(false), 400);
+      playSE('gameover').catch(() => undefined);
       // Navigate to result
       const finalState = gameState;
       if (isDaily) {
