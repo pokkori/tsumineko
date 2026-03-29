@@ -2,11 +2,12 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   TouchableWithoutFeedback,
   StyleSheet,
   Modal,
   SafeAreaView,
+  Dimensions,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useGameState } from "../src/hooks/useGameState";
@@ -24,6 +25,10 @@ import { GuideArrow } from "../src/components/GuideArrow";
 import { Background } from "../src/components/Background";
 import { PHYSICS } from "../src/constants/physics";
 import { COLORS } from "../src/constants/colors";
+import { useJuice, JuiceProvider, ComboCounter } from "../src/components/vfx";
+import { useProceduralAudio } from "../src/hooks/useProceduralAudio";
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function GameScreen() {
   const router = useRouter();
@@ -35,6 +40,10 @@ export default function GameScreen() {
 
   const { gameState, isRunning, startGame, onTap, continueFromReward } =
     useGameState(settings.selectedSkinId);
+
+  // VFX v2.0 Juice + Procedural Audio
+  const juice = useJuice();
+  const audio = useProceduralAudio();
 
   const [paused, setPaused] = useState(false);
   const [started, setStarted] = useState(false);
@@ -53,11 +62,13 @@ export default function GameScreen() {
     }, 800);
   }, []);
 
-  // オーディオ初期化 + BGM 再生
+  // オーディオ初期化 + BGM 再生 + Procedural Audio
   useEffect(() => {
     initAudioAsync().then(() => playBGM()).catch(() => undefined);
+    audio.startBGM();
     return () => {
       stopBGM().catch(() => undefined);
+      audio.stopBGM(500);
     };
   }, []);
 
@@ -66,13 +77,15 @@ export default function GameScreen() {
     setStarted(true);
   }, []);
 
-  // スコア増加時にポップアップ表示 + SE
+  // スコア増加時にポップアップ表示 + SE + VFX
   useEffect(() => {
     if (!gameState) return;
     const diff = gameState.score - prevScoreRef.current;
     if (diff > 0) {
       addScorePopup(diff, 200, 160);
       playSE('place').catch(() => undefined);
+      audio.playSE('success');
+      juice.onCorrect(gameState.combo, diff, { x: SCREEN_WIDTH / 2, y: SCREEN_HEIGHT * 0.3 });
     }
     prevScoreRef.current = gameState.score;
   }, [gameState?.score]);
@@ -83,6 +96,7 @@ export default function GameScreen() {
     if (!gameState) return;
     if (gameState.combo > 1 && gameState.combo > prevComboRef.current) {
       playSE('combo').catch(() => undefined);
+      audio.playSE('combo', { comboCount: gameState.combo });
     }
     prevComboRef.current = gameState.combo;
   }, [gameState?.combo]);
@@ -92,6 +106,9 @@ export default function GameScreen() {
       setGameOverFlash(true);
       setTimeout(() => setGameOverFlash(false), 400);
       playSE('gameover').catch(() => undefined);
+      audio.stopBGM(1000);
+      audio.playSE('gameover');
+      juice.onGameOver();
       // Navigate to result
       const finalState = gameState;
       if (isDaily) {
@@ -129,6 +146,7 @@ export default function GameScreen() {
   }
 
   return (
+    <JuiceProvider juice={juice}>
     <TouchableWithoutFeedback onPress={handleTap}>
       <View style={styles.container}>
         <Background heightPx={gameState.heightPx} />
@@ -181,6 +199,9 @@ export default function GameScreen() {
           ]}
         />
 
+        {/* Combo Counter (VFX v2.0) */}
+        <ComboCounter combo={gameState.combo} style={styles.comboCounter} />
+
         {/* Combo Popup */}
         <ComboPopup combo={gameState.combo} />
 
@@ -198,12 +219,14 @@ export default function GameScreen() {
         )}
 
         {/* Pause Button */}
-        <TouchableOpacity
+        <Pressable
           style={styles.pauseButton}
           onPress={() => setPaused(true)}
+          accessibilityLabel="一時停止"
+          accessibilityRole="button"
         >
           <Text style={styles.pauseButtonText}>II</Text>
-        </TouchableOpacity>
+        </Pressable>
 
         {/* Pause Modal */}
         <Modal
@@ -214,26 +237,31 @@ export default function GameScreen() {
           <View style={styles.pauseOverlay}>
             <View style={styles.pauseMenu}>
               <Text style={styles.pauseTitle}>ポーズ中</Text>
-              <TouchableOpacity
+              <Pressable
                 style={styles.pauseMenuButton}
                 onPress={() => setPaused(false)}
+                accessibilityLabel="再開"
+                accessibilityRole="button"
               >
                 <Text style={styles.pauseMenuButtonText}>▶ つづける</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </Pressable>
+              <Pressable
                 style={[styles.pauseMenuButton, styles.pauseMenuButtonSecondary]}
                 onPress={() => {
                   setPaused(false);
                   router.replace("/");
                 }}
+                accessibilityLabel="ホームに戻る"
+                accessibilityRole="button"
               >
                 <Text style={styles.pauseMenuButtonText}>タイトルへ</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         </Modal>
       </View>
     </TouchableWithoutFeedback>
+    </JuiceProvider>
   );
 }
 
@@ -306,8 +334,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   pauseMenu: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(26,26,46,0.95)",
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
     padding: 30,
     alignItems: "center",
     width: 280,
@@ -315,8 +345,11 @@ const styles = StyleSheet.create({
   pauseTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: COLORS.text,
+    color: "#F1F5F9",
     marginBottom: 20,
+    textShadowColor: COLORS.secondary,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
   },
   pauseMenuButton: {
     backgroundColor: COLORS.secondary,
@@ -326,13 +359,27 @@ const styles = StyleSheet.create({
     marginTop: 12,
     width: "100%",
     alignItems: "center",
+    shadowColor: COLORS.secondary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 5,
   },
   pauseMenuButtonSecondary: {
-    backgroundColor: COLORS.textLight,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+    shadowOpacity: 0,
   },
   pauseMenuButtonText: {
     color: "#FFFFFF",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  comboCounter: {
+    position: "absolute",
+    top: 100,
+    right: 16,
+    zIndex: 50,
   },
 });

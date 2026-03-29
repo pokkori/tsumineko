@@ -54,7 +54,7 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false,
           animation: "fade",
-          contentStyle: { backgroundColor: "#FFE4B5" },
+          contentStyle: { backgroundColor: "#0F0F1A" },
         }}
       />
     </>

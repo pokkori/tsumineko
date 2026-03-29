@@ -1,5 +1,14 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+  interpolate,
+} from "react-native-reanimated";
 import { ActiveCat, FaceExpression } from "../types";
 import { CAT_SHAPES } from "../data/catShapes";
 import { CAT_SKINS } from "../data/catSkins";
@@ -14,12 +23,49 @@ export const CatBody: React.FC<CatBodyProps> = React.memo(({ cat, cameraY }) => 
   const skin = CAT_SKINS.find((s) => s.id === cat.skinId);
   if (!shape || !skin) return null;
 
-  const scale = shape.width / 80;
   const w = shape.width;
   const h = shape.height;
 
+  // Idle breathing animation (Reanimated v4)
+  const breathe = useSharedValue(0);
+  const tailWag = useSharedValue(0);
+
+  useEffect(() => {
+    breathe.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 800, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: 800, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      true,
+    );
+    tailWag.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 500, easing: Easing.inOut(Easing.sin) }),
+        withTiming(-1, { duration: 500, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      true,
+    );
+  }, []);
+
+  const bodyAnimStyle = useAnimatedStyle(() => {
+    const scaleY = interpolate(breathe.value, [0, 1], [1, 1.02]);
+    const translateY = interpolate(breathe.value, [0, 1], [0, -1.5]);
+    return {
+      transform: [
+        { scaleY },
+        { translateY },
+      ],
+    };
+  });
+
+  const tailAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${tailWag.value * 12}deg` }],
+  }));
+
   return (
-    <View
+    <Animated.View
       style={[
         styles.container,
         {
@@ -29,8 +75,22 @@ export const CatBody: React.FC<CatBodyProps> = React.memo(({ cat, cameraY }) => 
           height: h,
           transform: [{ rotate: `${cat.angle}rad` }],
         },
+        bodyAnimStyle,
       ]}
     >
+      {/* Tail */}
+      <Animated.View
+        style={[
+          styles.tail,
+          {
+            backgroundColor: skin.patternColor || skin.bodyColor,
+            right: -4,
+            top: h * 0.2,
+          },
+          tailAnimStyle,
+        ]}
+      />
+
       {/* Body */}
       <View
         style={[
@@ -54,30 +114,46 @@ export const CatBody: React.FC<CatBodyProps> = React.memo(({ cat, cameraY }) => 
           <View style={[styles.nose, { backgroundColor: skin.noseColor }]} />
           <View style={[styles.eye, { backgroundColor: skin.eyeColor }]} />
         </View>
+        {/* Cheeks (new) */}
+        <View style={styles.cheeksRow}>
+          <View style={[styles.cheek, { backgroundColor: skin.earColor || '#FFB8C6' }]} />
+          <View style={{ width: 16 }} />
+          <View style={[styles.cheek, { backgroundColor: skin.earColor || '#FFB8C6' }]} />
+        </View>
         {/* Expression overlay */}
         <View style={styles.expressionContainer}>
           <ExpressionIndicator expression={cat.expression} />
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 });
 
 const ExpressionIndicator: React.FC<{ expression: FaceExpression }> = ({ expression }) => {
+  // SVG-style text indicators instead of emoji
   const marks: Record<FaceExpression, string> = {
     normal: "",
-    scared: "\u{1F4A7}",
+    scared: "!!",
     sleeping: "Zzz",
-    angry: "\u{1F4A2}",
-    shocked: "\u{2757}",
-    love: "\u{1F495}",
-    dizzy: "\u{1F4AB}",
+    angry: "!!",
+    shocked: "!?",
+    love: "",
+    dizzy: "@@",
+  };
+  const markColors: Record<FaceExpression, string> = {
+    normal: "transparent",
+    scared: "#64B5F6",
+    sleeping: "#90A4AE",
+    angry: "#E63946",
+    shocked: "#FFD93D",
+    love: "#FF6B81",
+    dizzy: "#B39DDB",
   };
   const mark = marks[expression];
   if (!mark) return null;
 
   return (
-    <Text style={styles.markText}>{mark}</Text>
+    <Text style={[styles.markText, { color: markColors[expression] }]}>{mark}</Text>
   );
 };
 
@@ -137,6 +213,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#FF8FAB",
     marginTop: 2,
   },
+  cheeksRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  cheek: {
+    width: 8,
+    height: 5,
+    borderRadius: 4,
+    opacity: 0.35,
+  },
   expressionContainer: {
     position: "absolute",
     top: -16,
@@ -144,5 +231,13 @@ const styles = StyleSheet.create({
   },
   markText: {
     fontSize: 10,
+    fontWeight: "900",
+  },
+  tail: {
+    position: "absolute",
+    width: 6,
+    height: 20,
+    borderRadius: 3,
+    transformOrigin: "bottom",
   },
 });

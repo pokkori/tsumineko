@@ -36,7 +36,7 @@ export const GameOverFlash: React.FC<GameOverFlashProps> = ({ triggered }) => {
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#E63946",
+    backgroundColor: "#FF6B6B",
     zIndex: 50,
   },
 });

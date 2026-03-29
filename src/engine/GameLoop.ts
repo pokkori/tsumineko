@@ -3,7 +3,7 @@ import { PhysicsWorld } from "./PhysicsWorld";
 import { CatSpawner } from "./CatSpawner";
 import { CollapseDetector } from "./CollapseDetector";
 import { ScoreCalculator } from "./ScoreCalculator";
-import { PHYSICS } from "../constants/physics";
+import { PHYSICS, getWindForce } from "../constants/physics";
 import { SCREEN_WIDTH } from "../constants/layout";
 
 export class GameLoop {
@@ -15,6 +15,9 @@ export class GameLoop {
   private horizontalDirection: number = 1;
   private slowMotionFrames: number = 0;
   private forceShapeId: CatShapeId | undefined;
+  private windDirection: number = 1;
+  private windFrameCounter: number = 0;
+  private gameStartTime: number = Date.now();
 
   state: GameState;
 
@@ -48,7 +51,14 @@ export class GameLoop {
   }
 
   start(): void {
+    this.gameStartTime = Date.now();
     this.spawnNextCat();
+  }
+
+  /** セーフティネット中かどうか */
+  private isInSafetyNet(): boolean {
+    const elapsedSec = (Date.now() - this.gameStartTime) / 1000;
+    return elapsedSec < PHYSICS.SAFETY_NET.DURATION_SEC;
   }
 
   private spawnNextCat(): void {
@@ -119,6 +129,7 @@ export class GameLoop {
 
   private updateDropping(): void {
     this.physics.step();
+    this.applyWind();
 
     if (!this.state.currentCat) return;
     const body = this.getBodyById(this.state.currentCat.bodyId);
@@ -135,12 +146,68 @@ export class GameLoop {
     }
   }
 
+  private applyWind(): void {
+    const heightPx = this.state.heightPx;
+    const windForce = getWindForce(heightPx);
+    if (windForce <= 0) return;
+
+    // Change wind direction periodically
+    this.windFrameCounter++;
+    if (this.windFrameCounter >= PHYSICS.WIND.DIRECTION_CHANGE_FRAMES) {
+      this.windFrameCounter = 0;
+      this.windDirection = Math.random() > 0.5 ? 1 : -1;
+    }
+
+    // Apply wind to all dynamic bodies
+    const bodies = this.physics.getDynamicBodies();
+    for (const body of bodies) {
+      // Wind with slight randomness for natural feel
+      const force = windForce * this.windDirection * (0.8 + Math.random() * 0.4);
+      if (body.force) {
+        body.force.x += force;
+      }
+    }
+  }
+
   private updateSettling(): void {
     this.physics.step();
+    this.applyWind();
 
     const dynamicBodies = this.physics.getDynamicBodies();
     const currentHighestY = this.physics.getHighestY();
     const allStable = this.physics.isAllStable();
+
+    // Safety net: use relaxed collapse detection during first 30 seconds
+    if (this.isInSafetyNet()) {
+      // Override the collapse detector's threshold temporarily
+      const heightDrop = this.collapse.getHeightDrop(currentHighestY);
+      if (heightDrop > PHYSICS.SAFETY_NET.COLLAPSE_THRESHOLD_PX) {
+        // During safety net, only collapse if height drop is extreme
+        // (relaxed threshold: 120px instead of 50px)
+        // Let it settle instead
+      }
+      // Check with relaxed OOB
+      const outOfBounds = dynamicBodies.filter(
+        (b) =>
+          b.position.x < PHYSICS.OUT_OF_BOUNDS.left ||
+          b.position.x > PHYSICS.OUT_OF_BOUNDS.right ||
+          b.position.y > PHYSICS.SAFETY_NET.OUT_OF_BOUNDS_BOTTOM
+      );
+      if (outOfBounds.length >= 3) {
+        // Even during safety net, if 3+ cats fall out, it's a collapse
+        this.onCollapse();
+        return;
+      }
+      if (allStable) {
+        this.collapse.resetStableCount();
+        // Still check for stable via normal path
+        const result = this.collapse.check(dynamicBodies, currentHighestY, allStable);
+        if (result === "stable") {
+          this.onStable();
+        }
+      }
+      return;
+    }
 
     const result = this.collapse.check(dynamicBodies, currentHighestY, allStable);
 

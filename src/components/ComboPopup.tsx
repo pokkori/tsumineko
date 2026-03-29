@@ -18,7 +18,7 @@ interface ComboPopupProps {
 const scorer = new ScoreCalculator();
 
 function getComboColor(combo: number): string {
-  if (combo >= 10) return "#E63946";
+  if (combo >= 10) return "#FF6B6B";
   if (combo >= 5) return "#FFD93D";
   return "#2DD4BF";
 }
